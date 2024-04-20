@@ -88,7 +88,6 @@ void* heap_malloc(size_t size){
         mMen.left_free-=mMen.first_block->actual_size+shift_needed;
         return mMen.first_block->user_ptr;
     }
-    //to check
     if((size_t)((intptr_t)mMen.first_block-(intptr_t)mMen.memory_start)>=actual_chunk_size){
         struct mem_block newBlock;
         newBlock.size=size;
@@ -238,7 +237,6 @@ void* heap_realloc(void* memblock, size_t count){
     }
     struct mem_block savedBlock=*temp->next;
     //I make the next block that is free get eaten by the block which needs more space(A=500,B is free=200)->realloc(A,550)->(A size=550 actual size=700)
-    //sketchy idk if dante wants me to do this EDIT: dante wants me to do this
     if(temp->next->isfree&&(temp->actual_size+temp->next->actual_size>=actual_chunk_size)){
         temp->next=temp->next->next;
         temp->next->prev=temp;
@@ -259,7 +257,6 @@ void* heap_realloc(void* memblock, size_t count){
     heap_free(memblock);
     return result;
 }
-//could be prettier
 void  heap_free(void* memblock){
     if(get_pointer_type(memblock)!=pointer_valid) {
         return;
@@ -296,8 +293,6 @@ void  heap_free(void* memblock){
         setChecksum(temp->next->next);
         temp->next=temp->next->next;
         setChecksum(temp);
-        //got a bit confusing because of the line above, careful there
-
     }
     if(temp->prev!=NULL&&temp->prev->isfree){
         temp->prev->actual_size+=temp->actual_size;
@@ -305,15 +300,7 @@ void  heap_free(void* memblock){
         setChecksum(temp->next);
         temp->prev->next=temp->next;
         setChecksum(temp->prev);
-    } /*else if(temp->prev==NULL&&((char *)mMen.first_block!=(char*)mMen.memory_start)){
-        struct mem_block old_struct=*temp;
-        *(struct mem_block*)mMen.memory_start=old_struct;
-        mMen.first_block=mMen.memory_start;
-        mMen.first_block->actual_size+=4096-STRUCT_SIZE-FENCE;
-        temp->next->prev=mMen.first_block;
-        setChecksum(temp->next);
-        setChecksum(mMen.first_block);
-    }*/
+    }
 }
 enum pointer_type_t get_pointer_type(const void* const pointer){
     if(pointer==NULL) return pointer_null;
@@ -370,9 +357,6 @@ void* heap_malloc_aligned(size_t count){
     struct mem_block *temp=mMen.first_block;
     size_t actual_chunk_size= STRUCT_SIZE + count + 2 * FENCE;
     if(temp==NULL){
-        /*if(((intptr_t)mMen.memory_start & (intptr_t)(PAGE_SIZE - 1)) != 0){
-            printf("##memory not aligned##");
-        }*/
         if(actual_chunk_size+PAGE_SIZE-STRUCT_SIZE-FENCE>mMen.left_free){
             int result= increaseHeapSize(actual_chunk_size-mMen.left_free+PAGE_SIZE-STRUCT_SIZE-FENCE);
             if(result!=0) return NULL;
@@ -398,7 +382,6 @@ void* heap_malloc_aligned(size_t count){
     }
     size_t shift_needed=0;
     for (; temp->next !=NULL; temp=temp->next){
-        //shift_needed=(PAGE_SIZE-((intptr_t)temp+temp->size+2*STRUCT_SIZE+3*FENCE)%PAGE_SIZE)%PAGE_SIZE;
         if(temp->isfree==1&&(((intptr_t)temp->user_ptr & (intptr_t)(PAGE_SIZE - 1))==0)){
             if(temp->actual_size<actual_chunk_size){
                 continue;
@@ -491,7 +474,6 @@ void* heap_realloc_aligned(void* memblock, size_t size){
         return temp->user_ptr;
     }
     size_t actual_chunk_size= STRUCT_SIZE + size + 2 * FENCE;
-    //not used if the align is 1
     if(actual_chunk_size%ALIGN_BYTES!=0){
         actual_chunk_size+=ALIGN_BYTES-actual_chunk_size%ALIGN_BYTES;
     }
@@ -509,8 +491,6 @@ void* heap_realloc_aligned(void* memblock, size_t size){
         return temp->user_ptr;
     }
     struct mem_block savedBlock=*temp->next;
-    //I make the next block that is free get eaten by the block which needs more space(A=500,B is free=200)->realloc(A,550)->(A size=550 actual size=700)
-    //sketchy idk if dante wants me to do this EDIT: dante wants me to do this
     if(temp->next->isfree&&(temp->actual_size+temp->next->actual_size>=actual_chunk_size)){
         temp->next=temp->next->next;
         temp->next->prev=temp;
